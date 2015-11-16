@@ -4,100 +4,19 @@
 # --------------------------------------------------------------
 # Root CMake script
 cmake_minimum_required(VERSION 2.8.3)
-project(SRBA_ALL)
+project(srba)
 
-# =====================================
-#  1. Set-up CMake and find pkgs
-# =====================================
-SET(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS 1)
+find_package(catkin REQUIRED)
+find_package(MRPT REQUIRED base gui graphs graphslam)
 
-# Declare lib version:
-# Look for: "#define SRBA_VERSION 0xABC"
-file(READ "${SRBA_ALL_SOURCE_DIR}/include/srba/version.h" STR_HPP)
-STRING(REGEX MATCHALL "SRBA_VERSION.*0x[0-9,A-F]+" CMAKE_VERSION_LINE "${STR_HPP}")
-STRING(REGEX MATCHALL "0x[0-9,A-F]+" SRBA_VERSION_HEX "${CMAKE_VERSION_LINE}")
-STRING(REGEX REPLACE "0x(.).*" "\\1" CMAKE_SRBA_VERSION_NUMBER_MAJOR "${SRBA_VERSION_HEX}" )
-STRING(REGEX REPLACE "0x.(.).*" "\\1" CMAKE_SRBA_VERSION_NUMBER_MINOR "${SRBA_VERSION_HEX}" )
-STRING(REGEX REPLACE "0x..(.).*" "\\1" CMAKE_SRBA_VERSION_NUMBER_PATCH "${SRBA_VERSION_HEX}" )
+catkin_package(
+    INCLUDE_DIRS include
+    )
+include_directories(include ${catkin_INCLUDE_DIRS} ${MRPT_INCLUDE_DIRS})
 
-SET(CMAKE_SRBA_FULL_VERSION "${CMAKE_SRBA_VERSION_NUMBER_MAJOR}.${CMAKE_SRBA_VERSION_NUMBER_MINOR}.${CMAKE_SRBA_VERSION_NUMBER_PATCH}")
-MESSAGE(STATUS "Configuring for SRBA v${CMAKE_SRBA_FULL_VERSION}")
-file(WRITE "${SRBA_ALL_SOURCE_DIR}/docs/version" ${CMAKE_SRBA_FULL_VERSION})
+add_executable(graph_slam_se2 examples/cpp/tutorial-srba-relative-graph-slam-se2.cpp)
+target_link_libraries(graph_slam_se2 ${MRPT_LIBS})
+add_executable(recover_global_map examples/cpp/tutorial-srba-how-to-recover-global-map.cpp)
+target_link_libraries(recover_global_map ${MRPT_LIBS})
 
-IF (CMAKE_VERSION VERSION_GREATER 2.8.0)
-	SET(ENABLE_SOLUTION_FOLDERS ON CACHE BOOL "Group projects under virtual folders of the compiler IDE (e.g. VisualStudio)")
-	MARK_AS_ADVANCED(ENABLE_SOLUTION_FOLDERS)
-ENDIF ()
-if (ENABLE_SOLUTION_FOLDERS)
-  set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-  set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
-endif ()
-
-if(COMMAND cmake_policy)
-      cmake_policy(SET CMP0003 NEW)  # Required by CMake 2.7+
-endif(COMMAND cmake_policy)
-
-SET(EXECUTABLE_OUTPUT_PATH "${${PROJECT_NAME}_BINARY_DIR}/bin")
-
-# Shared options between GCC and CLANG:
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
-    # We need pthread's
-    IF (UNIX AND NOT APPLE)
-      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-    ENDIF()
-    IF(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-    ENDIF()
-endif()
-
-# =====================================
-#  2. Install, config files, etc.
-# =====================================
-
-# Generate CMake config file for usage without "make install"
-# ---------------------------------------------------------------
-SET(THE_INCLUDE_DIRECTORIES "${SRBA_ALL_SOURCE_DIR}/include")
-CONFIGURE_FILE(
-	"${SRBA_ALL_SOURCE_DIR}/srba-config.cmake.in"
-    "${SRBA_ALL_BINARY_DIR}/srba-config.cmake" @ONLY IMMEDIATE )
-
-SET(SRBA_DIR ${SRBA_ALL_BINARY_DIR} CACHE PATH "Directory for SRBA-config.cmake" )
-MARK_AS_ADVANCED(SRBA_DIR)
-
-# =====================================
-#  3. Declare targets
-# =====================================
-#  C++ Library: It's hdr only, so we don't need to compile it!
-include_directories("${SRBA_ALL_SOURCE_DIR}/include/")
-
-# Anyway, we define a "dummy" target so all headers appear in the Development GUI (Visual Studio, QtCreator,...)
-# A custom target (needs no real compiling)
-FILE(GLOB srba_hdrs 
-	"${SRBA_ALL_SOURCE_DIR}/include/*.h"
-	"${SRBA_ALL_SOURCE_DIR}/include/srba/*.h"
-	)
-SOURCE_GROUP("Hdrs: Public API" FILES ${srba_hdrs})
-FILE(GLOB srba_hdrs_models "${SRBA_ALL_SOURCE_DIR}/include/srba/models/*.h")
-SOURCE_GROUP("Hdrs: models" FILES ${srba_hdrs_models})
-FILE(GLOB srba_hdrs_impl "${SRBA_ALL_SOURCE_DIR}/include/srba/impl/*.h")
-SOURCE_GROUP("Hdrs: impl" FILES ${srba_hdrs_impl})
-FILE(GLOB srba_hdrs_ecps "${SRBA_ALL_SOURCE_DIR}/include/srba/ecps/*.h")
-SOURCE_GROUP("Hdrs: ecps" FILES ${srba_hdrs_ecps})
-
-set(srba_all_srcs ${srba_hdrs} ${srba_hdrs_models} ${srba_hdrs_impl} ${srba_hdrs_ecps})
-add_custom_target(srba DEPENDS ${srba_all_srcs} SOURCES ${srba_all_srcs})
-set_target_properties(srba PROPERTIES FOLDER "SRBA lib")
-
-# Install!
-
-# Apps
-add_subdirectory(apps)
-# Examples
-SET(BUILD_EXAMPLES ON CACHE BOOL "Build tutorial and example C++ programs")
-if (BUILD_EXAMPLES)
-	add_subdirectory(examples)
-endif()
-# tests
-add_subdirectory(tests)
-
-
+install(DIRECTORY include/ DESTINATION include)

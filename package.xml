@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package>
+    <name>srba</name>
+    <version>1.0.0</version>
+    <description>Catkinized ROS packaging of the MRPT srba library</description>
+
+    <maintainer email="liz@savioke.com">Liz Murphy</maintainer>
+    <license>BSD 3-Clause License</license>
+    
+    <buildtool_depend>catkin</buildtool_depend>
+    <build_depend>mrpt</build_depend>
+
+</package>
