@@ -199,7 +199,6 @@ struct local_areas_fixed_size
 				}
 			}
 		}
-
 		ASSERTMSG_(new_k2k_edge_ids.size()>=1, mrpt::format("Error for new KF#%u: no suitable linking KF found with a minimum of %u common observation: the node becomes isolated of the graph!", static_cast<unsigned int>(new_kf_id),static_cast<unsigned int>(MINIMUM_OBS_TO_LOOP_CLOSURE) ))
 
 		// save for the next timestep:

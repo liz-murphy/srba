@@ -495,6 +495,35 @@ namespace srba
 		template <class SPARSEBLOCKHESSIAN>
 		size_t sparse_hessian_update_numeric( SPARSEBLOCKHESSIAN & H ) const;
 
+	/** This method will call edge_creation_policy(), which has predefined algorithms but could be re-defined by the user in a derived class */
+		void determine_kf2kf_edges_to_create(
+			const TKeyFrameID               new_kf_id,
+			const typename traits_t::new_kf_observations_t   & obs,
+			std::vector<TNewEdgeInfo> &new_k2k_edge_ids );
+
+    /** Creates a new known/unknown position landmark (upon first LM observation ), and expands Jacobians with new observation
+		  * \param[in] new_obs The basic data on the observed landmark: landmark ID, keyframe from which it's observed and parameters ("z" vector) of the observation itself (e.g. pixel coordinates).
+		  * \param[in] fixed_relative_position If not NULL, this is the first observation of a landmark with a fixed, known position. Each such feature can be created only once, next observations MUST have this field set to NULL as with normal ("unfixed") landmarks.
+		  * \param[in] unknown_relative_position_init_val Can be set to not-NULL only upon the first observation of a landmark with an unknown relative position. The feature will be created with this initial value for its relative position wrt the KF (further optimization will refine that value).
+		  *
+		  * \return The 0-based index of the new observation
+		  *
+		  * \note Both \a fixed_relative_position and \a unknown_relative_position_init_val CAN'T be set to !=NULL at once.
+		  *
+		  * \note If new edges had been introduced before this observation, make sure the symbolic spanning trees are up-to-date!
+		  *
+		  * \note Runs in O(P+log C), with:
+		  *   - C=typical amount of KFs which all see the same landmark,
+		  *   - P=typical number of kf2kf edges between observing and the base KF of the observed landmark.
+		  */
+		size_t add_observation(
+			const TKeyFrameID         observing_kf_id,
+			const typename observation_traits_t::observation_t     & new_obs,
+			const array_landmark_t * fixed_relative_position = NULL,
+			const array_landmark_t * unknown_relative_position_init_val = NULL
+			);
+
+
 
 	protected:
 		int m_verbose_level; //!< 0: None (only critical msgs), 1: verbose (default value), 2:even more verbose, 3: even more
@@ -502,13 +531,7 @@ namespace srba
 		/** @name (Protected) Sub-algorithms
 		    @{ */
 
-		/** This method will call edge_creation_policy(), which has predefined algorithms but could be re-defined by the user in a derived class */
-		void determine_kf2kf_edges_to_create(
-			const TKeyFrameID               new_kf_id,
-			const typename traits_t::new_kf_observations_t   & obs,
-			std::vector<TNewEdgeInfo> &new_k2k_edge_ids );
-
-		/**
+			/**
 		  * \param observation_indices_to_optimize Indices wrt \a rba_state.all_observations. An empty vector means use ALL the observations involving the selected unknowns.
 		  * \sa optimize_local_area
 		  */
@@ -608,28 +631,6 @@ namespace srba
 		  *  Enabled by default, can be disabled with \a enable_time_profiler(false)
 		  */
 		mutable mrpt::utils::CTimeLogger  m_profiler;
-
-		/** Creates a new known/unknown position landmark (upon first LM observation ), and expands Jacobians with new observation
-		  * \param[in] new_obs The basic data on the observed landmark: landmark ID, keyframe from which it's observed and parameters ("z" vector) of the observation itself (e.g. pixel coordinates).
-		  * \param[in] fixed_relative_position If not NULL, this is the first observation of a landmark with a fixed, known position. Each such feature can be created only once, next observations MUST have this field set to NULL as with normal ("unfixed") landmarks.
-		  * \param[in] unknown_relative_position_init_val Can be set to not-NULL only upon the first observation of a landmark with an unknown relative position. The feature will be created with this initial value for its relative position wrt the KF (further optimization will refine that value).
-		  *
-		  * \return The 0-based index of the new observation
-		  *
-		  * \note Both \a fixed_relative_position and \a unknown_relative_position_init_val CAN'T be set to !=NULL at once.
-		  *
-		  * \note If new edges had been introduced before this observation, make sure the symbolic spanning trees are up-to-date!
-		  *
-		  * \note Runs in O(P+log C), with:
-		  *   - C=typical amount of KFs which all see the same landmark,
-		  *   - P=typical number of kf2kf edges between observing and the base KF of the observed landmark.
-		  */
-		size_t add_observation(
-			const TKeyFrameID         observing_kf_id,
-			const typename observation_traits_t::observation_t     & new_obs,
-			const array_landmark_t * fixed_relative_position = NULL,
-			const array_landmark_t * unknown_relative_position_init_val = NULL
-			);
 
 		/** Prepare the list of all required KF roots whose spanning trees need numeric updates with each optimization iteration */
 		void prepare_Jacobians_required_tree_roots(
